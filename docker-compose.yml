@@ -1,0 +1,11 @@
+
+services:
+  token-supply-api:
+    image: 0xsend/token-supply-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
