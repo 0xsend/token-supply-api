@@ -67,11 +67,11 @@ app.get("/", (req, res) => {
   res.redirect(301, "https://www.send.it/");
 });
 
-app.get("/totaltokens", (req, res) => {
+app.get("/total", (req, res) => {
   res.send(totalSupply.toString());
 });
 
-app.get("/circulatingsupply", (req, res) => {
+app.get("/circulating", (req, res) => {
   res.send(circulatingSupply.toString());
 });
 
