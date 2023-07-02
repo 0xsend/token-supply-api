@@ -62,20 +62,39 @@ setInterval(async () => {
 const app = express();
 const port = 8080;
 
+// set CORS headers
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
+
+// log requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 app.get("/", (req, res) => {
   // redirect to naked domain
   res.redirect(301, "https://www.send.it/");
 });
 
+app.get("/amounts.json", (req, res) => {
+  res.send({
+    total: Number(totalSupply),
+    circulating: Number(circulatingSupply),
+  });
+});
+
 app.get("/total", (req, res) => {
-  res.send(totalSupply.toString());
+  res.send(totalSupply);
 });
 
 app.get("/circulating", (req, res) => {
-  res.send(circulatingSupply.toString());
+  res.send(circulatingSupply);
 });
 
-app.listen(port, () => {
+app.listen(port, "::", () => {
   const rpcHost = new URL(RPC_URL).hostname;
   console.log(`Connected to ${rpcHost}. Listening on port ${port}...`);
 });
