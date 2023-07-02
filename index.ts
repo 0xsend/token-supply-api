@@ -87,11 +87,11 @@ app.get("/amounts.json", (req, res) => {
 });
 
 app.get("/total", (req, res) => {
-  res.send(totalSupply);
+  res.send(totalSupply.toString());
 });
 
 app.get("/circulating", (req, res) => {
-  res.send(circulatingSupply);
+  res.send(circulatingSupply.toString());
 });
 
 app.listen(port, "::", () => {
