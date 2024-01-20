@@ -1,11 +1,9 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "module": "esnext",
     "target": "esnext",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "downlevelIteration": true,
     "skipLibCheck": true,
