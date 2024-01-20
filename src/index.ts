@@ -1,13 +1,13 @@
-import express from "express";
-import {
-  mainnetSendContract,
-  baseSendContract,
-  multisigAddresses,
-  MAINNET_RPC_URL,
-  BASE_RPC_URL,
-} from "./ethers";
-import { assert } from "./assert";
 import { debug } from "debug";
+import express from "express";
+import { assert } from "./assert";
+import {
+  BASE_RPC_URL,
+  MAINNET_RPC_URL,
+  baseSendContract,
+  mainnetSendContract,
+  multisigAddresses,
+} from "./ethers";
 
 const log = debug("send:server");
 
@@ -23,7 +23,7 @@ async function lookupTotalSupply() {
 }
 
 // 100 billion total supply
-let totalSupply = await lookupTotalSupply();
+const totalSupply = await lookupTotalSupply();
 log("Total supply:", totalSupply);
 assert(totalSupply > 0n, "Total supply not found");
 assert(totalSupply === 100000000000n, "Total supply is not 100 billion");
@@ -35,11 +35,11 @@ async function lookupCirculatingSupply() {
   for (let i = 0; i < multisigAddresses.length; i++) {
     const { address, heading, name } = multisigAddresses[i];
     log(`Checking balance of multisig ${name} (${heading})...`, address);
-    await mainnetSendContract.balanceOf(address).then((balance: any) => {
+    await mainnetSendContract.balanceOf(address).then((balance: bigint) => {
       log(`Multisig ${name} on mainnet balance:`, balance);
       lockedSupply += balance;
     });
-    await baseSendContract.balanceOf(address).then((balance: any) => {
+    await baseSendContract.balanceOf(address).then((balance: bigint) => {
       log(`Multisig ${name} on base balance:`, balance);
       lockedSupply += balance;
     });
@@ -56,7 +56,7 @@ function printSummary() {
   console.log("Circulating supply:", circulatingSupply);
   console.log(
     "% of supply circulating:",
-    (circulatingSupply * 100n) / totalSupply + "%"
+    `${(circulatingSupply * 100n) / totalSupply}%`
   );
 }
 
@@ -71,7 +71,7 @@ setInterval(async () => {
 }, refreshInterval);
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 // set CORS headers
 app.use((req, res, next) => {
@@ -105,7 +105,11 @@ app.get("/circulating", (req, res) => {
   res.send(circulatingSupply.toString());
 });
 
-app.listen(port, "::", () => {
+app.get("/multisigs", (req, res) => {
+  res.send(multisigAddresses);
+});
+
+app.listen(Number(port), "::", () => {
   const mainnetRpcHost = new URL(MAINNET_RPC_URL).hostname;
   const baseRpcHost = new URL(BASE_RPC_URL).hostname;
   console.log(
