@@ -6,8 +6,8 @@ import {
   MAINNET_RPC_URL,
   baseSendContract,
   mainnetSendContract,
-  multisigAddresses,
 } from "./ethers";
+import { fetchMultisigsFromGitbook } from "./multisigs";
 
 const log = debug("send:server");
 
@@ -28,9 +28,11 @@ log("Total supply:", totalSupply);
 assert(totalSupply > 0n, "Total supply not found");
 assert(totalSupply === 100000000000n, "Total supply is not 100 billion");
 
+let multisigAddresses = await fetchMultisigsFromGitbook();
 let circulatingSupply = 0n;
 
 async function lookupCirculatingSupply() {
+  multisigAddresses = await fetchMultisigsFromGitbook();
   let lockedSupply = 0n;
   for (let i = 0; i < multisigAddresses.length; i++) {
     const { address, heading, name } = multisigAddresses[i];
@@ -52,6 +54,10 @@ log("Circulating supply:", circulatingSupply);
 assert(circulatingSupply > 0n, "Circulating supply not found");
 
 function printSummary() {
+  console.log(
+    "Multisig addresses:",
+    multisigAddresses.map((m) => m.address)
+  );
   console.log("Total supply:", totalSupply);
   console.log("Circulating supply:", circulatingSupply);
   console.log(
