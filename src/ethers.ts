@@ -19,16 +19,16 @@ log("Base chain ID:", baseChainId);
 assert(baseChainId === 8453n, "Base chain ID is not 8453n");
 
 const abi = [
-  "function balanceOf(address addr) view returns (uint)",
-  "function totalSupply() view returns (uint)",
+	"function balanceOf(address addr) view returns (uint)",
+	"function totalSupply() view returns (uint)",
 ];
 export const mainnetSendContract = new Contract(
-  contractAddress,
-  abi,
-  mainnetProvider
+	contractAddress,
+	abi,
+	mainnetProvider,
 );
 export const baseSendContract = new Contract(
-  contractAddress,
-  abi,
-  baseProvider
+	contractAddress,
+	abi,
+	baseProvider,
 );

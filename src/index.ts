@@ -2,24 +2,24 @@ import { debug } from "debug";
 import express from "express";
 import { assert } from "./assert";
 import {
-  BASE_RPC_URL,
-  MAINNET_RPC_URL,
-  baseSendContract,
-  mainnetSendContract,
+	BASE_RPC_URL,
+	MAINNET_RPC_URL,
+	baseSendContract,
+	mainnetSendContract,
 } from "./ethers";
 import { fetchMultisigsFromGitbook } from "./multisigs";
 
 const log = debug("send:server");
 
 async function lookupTotalSupply() {
-  const mainnnetTotalSupply = await mainnetSendContract.totalSupply();
+	const mainnnetTotalSupply = await mainnetSendContract.totalSupply();
 
-  // Mainnet is the source of truth for total supply. Base is a l2 and uses bridged tokens for total supply.
-  // const baseTotalSupply = await baseSendContract.totalSupply();
-  // log("Mainnet total supply:", mainnnetTotalSupply);
-  // log("Base total supply:", baseTotalSupply);
+	// Mainnet is the source of truth for total supply. Base is a l2 and uses bridged tokens for total supply.
+	// const baseTotalSupply = await baseSendContract.totalSupply();
+	// log("Mainnet total supply:", mainnnetTotalSupply);
+	// log("Base total supply:", baseTotalSupply);
 
-  return mainnnetTotalSupply;
+	return mainnnetTotalSupply;
 }
 
 // 100 billion total supply
@@ -32,21 +32,21 @@ let multisigAddresses = await fetchMultisigsFromGitbook();
 let circulatingSupply = 0n;
 
 async function lookupCirculatingSupply() {
-  multisigAddresses = await fetchMultisigsFromGitbook();
-  let lockedSupply = 0n;
-  for (let i = 0; i < multisigAddresses.length; i++) {
-    const { address, heading, name } = multisigAddresses[i];
-    log(`Checking balance of multisig ${name} (${heading})...`, address);
-    await mainnetSendContract.balanceOf(address).then((balance: bigint) => {
-      log(`Multisig ${name} on mainnet balance:`, balance);
-      lockedSupply += balance;
-    });
-    await baseSendContract.balanceOf(address).then((balance: bigint) => {
-      log(`Multisig ${name} on base balance:`, balance);
-      lockedSupply += balance;
-    });
-  }
-  return totalSupply - lockedSupply;
+	multisigAddresses = await fetchMultisigsFromGitbook();
+	let lockedSupply = 0n;
+	for (let i = 0; i < multisigAddresses.length; i++) {
+		const { address, heading, name } = multisigAddresses[i];
+		log(`Checking balance of multisig ${name} (${heading})...`, address);
+		await mainnetSendContract.balanceOf(address).then((balance: bigint) => {
+			log(`Multisig ${name} on mainnet balance:`, balance);
+			lockedSupply += balance;
+		});
+		await baseSendContract.balanceOf(address).then((balance: bigint) => {
+			log(`Multisig ${name} on base balance:`, balance);
+			lockedSupply += balance;
+		});
+	}
+	return totalSupply - lockedSupply;
 }
 
 circulatingSupply = await lookupCirculatingSupply();
@@ -54,26 +54,26 @@ log("Circulating supply:", circulatingSupply);
 assert(circulatingSupply > 0n, "Circulating supply not found");
 
 function printSummary() {
-  console.log(
-    "Multisig addresses:",
-    multisigAddresses.map((m) => m.address)
-  );
-  console.log("Total supply:", totalSupply);
-  console.log("Circulating supply:", circulatingSupply);
-  console.log(
-    "% of supply circulating:",
-    `${(circulatingSupply * 100n) / totalSupply}%`
-  );
+	console.log(
+		"Multisig addresses:",
+		multisigAddresses.map((m) => m.address),
+	);
+	console.log("Total supply:", totalSupply);
+	console.log("Circulating supply:", circulatingSupply);
+	console.log(
+		"% of supply circulating:",
+		`${(circulatingSupply * 100n) / totalSupply}%`,
+	);
 }
 
 // 5 minute refresh interval in production, 10 second refresh interval in development
 const refreshInterval =
-  process.env.NODE_ENV === "production" ? 5 * 60 * 1000 : 10000;
+	process.env.NODE_ENV === "production" ? 5 * 60 * 1000 : 10000;
 setInterval(async () => {
-  await lookupTotalSupply();
-  log("Refreshing supply...");
-  circulatingSupply = await lookupCirculatingSupply();
-  printSummary();
+	await lookupTotalSupply();
+	log("Refreshing supply...");
+	circulatingSupply = await lookupCirculatingSupply();
+	printSummary();
 }, refreshInterval);
 
 const app = express();
@@ -81,45 +81,45 @@ const port = process.env.PORT || 8080;
 
 // set CORS headers
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	next();
 });
 
 // log requests
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
+	console.log(`${req.method} ${req.path}`);
+	next();
 });
 
 app.get("/", (req, res) => {
-  // redirect to naked domain
-  res.redirect(301, "https://www.send.it/");
+	// redirect to naked domain
+	res.redirect(301, "https://www.send.it/");
 });
 
 app.get("/amounts.json", (req, res) => {
-  res.send({
-    total: Number(totalSupply),
-    circulating: Number(circulatingSupply),
-  });
+	res.send({
+		total: Number(totalSupply),
+		circulating: Number(circulatingSupply),
+	});
 });
 
 app.get("/total", (req, res) => {
-  res.send(totalSupply.toString());
+	res.send(totalSupply.toString());
 });
 
 app.get("/circulating", (req, res) => {
-  res.send(circulatingSupply.toString());
+	res.send(circulatingSupply.toString());
 });
 
 app.get("/multisigs", (req, res) => {
-  res.send(multisigAddresses);
+	res.send(multisigAddresses);
 });
 
 app.listen(Number(port), "::", () => {
-  const mainnetRpcHost = new URL(MAINNET_RPC_URL).hostname;
-  const baseRpcHost = new URL(BASE_RPC_URL).hostname;
-  console.log(
-    `Connected to mainnet:${mainnetRpcHost} and base:${baseRpcHost}. Listening on port ${port}...`
-  );
-  printSummary();
+	const mainnetRpcHost = new URL(MAINNET_RPC_URL).hostname;
+	const baseRpcHost = new URL(BASE_RPC_URL).hostname;
+	console.log(
+		`Connected to mainnet:${mainnetRpcHost} and base:${baseRpcHost}. Listening on port ${port}...`,
+	);
+	printSummary();
 });
