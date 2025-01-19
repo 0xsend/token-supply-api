@@ -5,9 +5,11 @@ import {
   BASE_RPC_URL,
   MAINNET_RPC_URL,
   baseSendContract,
+  baseSendV0Contract,
   mainnetSendContract,
 } from "./ethers";
-import { fetchMultisigsFromGitbook } from "./multisigs";
+import { formatUnits } from "ethers";
+// import { fetchMultisigsFromGitbook } from "./multisigs";
 
 const log = debug("send:server");
 
@@ -19,14 +21,20 @@ async function lookupTotalSupply() {
   // log("Mainnet total supply:", mainnnetTotalSupply);
   // log("Base total supply:", baseTotalSupply);
 
-  return mainnnetTotalSupply;
+  // mainnet is still the source of truth for total supply
+  // but, we going forward, send v1 will be the only token accepted
+  // convert send v0 to send v1
+  return sendV0Conversion(mainnnetTotalSupply);
 }
 
 // 100 billion total supply
 const totalSupply = await lookupTotalSupply();
 log("Total supply:", totalSupply);
 assert(totalSupply > 0n, "Total supply not found");
-assert(totalSupply === 100000000000n, "Total supply is not 100 billion");
+assert(
+  totalSupply === 100000000000n * BigInt(1e16),
+  "Total supply is not 1 billion"
+);
 
 // let multisigAddresses = await fetchMultisigsFromGitbook();
 const multisigAddresses = [
@@ -41,6 +49,18 @@ const multisigAddresses = [
 ] as const;
 let circulatingSupply = 0n;
 
+/**
+ * Send V0 uses 0 decimals and has 100 billion supply
+ * Send V1 uses 18 decimals and has 1 billion supply
+ * We need to convert between the two
+ * send v1 = send v0 * 10^18 / 100 = 1e16
+ * @param amount send v0 amount to convert
+ * @returns send v1 amount
+ */
+function sendV0Conversion(amount: bigint): bigint {
+  return amount * BigInt(1e16);
+}
+
 async function lookupCirculatingSupply() {
   // multisigAddresses = await fetchMultisigsFromGitbook();
   let lockedSupply = 0n;
@@ -49,8 +69,24 @@ async function lookupCirculatingSupply() {
     const [name, address] = multisigAddresses[i];
     log(`Checking balance of multisig ${name}...`, address);
     await mainnetSendContract.balanceOf(address).then((balance: bigint) => {
-      log(`Multisig ${name} on mainnet balance:`, balance);
-      lockedSupply += balance;
+      const convertedBalance = sendV0Conversion(balance);
+      log(
+        `Multisig ${name} on mainnet balance:`,
+        balance,
+        "converted to:",
+        convertedBalance
+      );
+      lockedSupply += convertedBalance;
+    });
+    await baseSendV0Contract.balanceOf(address).then((balance: bigint) => {
+      const convertedBalance = sendV0Conversion(balance);
+      log(
+        `Multisig ${name} on base balance:`,
+        balance,
+        "converted to:",
+        convertedBalance
+      );
+      lockedSupply += convertedBalance;
     });
     await baseSendContract.balanceOf(address).then((balance: bigint) => {
       log(`Multisig ${name} on base balance:`, balance);
@@ -69,8 +105,14 @@ function printSummary() {
     "Multisig addresses:",
     multisigAddresses.map(([, m]) => m)
   );
-  console.log("Total supply:", totalSupply);
-  console.log("Circulating supply:", circulatingSupply);
+  console.log(
+    "Total supply:",
+    Number(formatUnits(totalSupply, 18)).toLocaleString("en-US")
+  );
+  console.log(
+    "Circulating supply:",
+    Number(formatUnits(circulatingSupply, 18)).toLocaleString("en-US")
+  );
   console.log(
     "% of supply circulating:",
     `${(circulatingSupply * 100n) / totalSupply}%`
@@ -127,6 +169,8 @@ app.get("/multisigs", (req, res) => {
 });
 
 app.listen(Number(port), "::", () => {
+  assert(!!MAINNET_RPC_URL, "MAINNET_RPC_URL not set");
+  assert(!!BASE_RPC_URL, "BASE_RPC_URL not set");
   const mainnetRpcHost = new URL(MAINNET_RPC_URL).hostname;
   const baseRpcHost = new URL(BASE_RPC_URL).hostname;
   console.log(
