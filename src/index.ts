@@ -151,8 +151,8 @@ app.get("/", (req, res) => {
 
 app.get("/amounts.json", (req, res) => {
   res.send({
-    total: Number(totalSupply),
-    circulating: Number(circulatingSupply),
+    total: totalSupply.toString(),
+    circulating: circulatingSupply.toString(),
   });
 });
 
