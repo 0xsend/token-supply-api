@@ -1,0 +1,24 @@
+# Cloudflare (proxied, TLS at the edge) -> ingress-nginx -> Service, like the
+# rest of the swiss fleet. supply.send.it reaches the cluster through the
+# proxied *.send.it wildcard once its DigitalOcean CNAME is removed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: token-supply-api
+  labels:
+    app.kubernetes.io/name: token-supply-api
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: supply.send.it
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: token-supply-api
+                port:
+                  number: 80

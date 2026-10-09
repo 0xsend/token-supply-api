@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: token-supply-api
+  labels:
+    app.kubernetes.io/name: token-supply-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: token-supply-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: token-supply-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-credentials
+      containers:
+        - name: token-supply-api
+          # Pinned per environment by the overlay `images:` transformer.
+          image: ghcr.io/0xsend/token-supply-api:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: NODE_ENV
+              value: production
+          envFrom:
+            - secretRef:
+                name: token-supply-api
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 20m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
+          # The server binds only after the first total and circulating supply
+          # lookups succeed, so an answering /total means the cached values exist.
+          startupProbe:
+            httpGet:
+              path: /total
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /total
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /total
+              port: http
+            periodSeconds: 30
