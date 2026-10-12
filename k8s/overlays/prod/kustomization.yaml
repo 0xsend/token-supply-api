@@ -10,4 +10,4 @@ resources:
 
 images:
   - name: ghcr.io/0xsend/token-supply-api
-    newTag: sha-REPLACE_WITH_MAIN_SHA
+    newTag: sha-87cd7cb1736de4a8a47e037f30265b289348d6f5
